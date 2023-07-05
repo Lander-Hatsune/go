@@ -13,6 +13,14 @@ import (
 	"unsafe"
 )
 
+var RecordBegin func(taskid uint64) = nil
+var RecordEnd func(taskid uint64) = nil
+var Replay func(taskid uint64) = nil
+
+func gp2uint64(gp *g) uint64 {
+	return uint64(uintptr(unsafe.Pointer(gp)))
+}
+
 // set using cmd/go/internal/modload.ModInfoProg
 var modinfo string
 
@@ -360,6 +368,11 @@ func gopark(unlockf func(*g, unsafe.Pointer) bool, lock unsafe.Pointer, reason w
 	mp.waittraceskip = traceskip
 	releasem(mp)
 	// can't do anything that might move the G between Ms here.
+
+	if RecordEnd != nil && getg().m.curg == getg() {
+		RecordEnd(gp2uint64(gp))
+	}
+
 	mcall(park_m)
 }
 
@@ -370,6 +383,15 @@ func goparkunlock(lock *mutex, reason waitReason, traceEv byte, traceskip int) {
 }
 
 func goready(gp *g, traceskip int) {
+
+	if Replay != nil && getg().m.curg == getg() {
+		Replay(gp2uint64(gp))
+	}
+
+	if RecordBegin != nil && getg().m.curg == getg() {
+		RecordBegin(gp2uint64(gp))
+	}
+
 	systemstack(func() {
 		ready(gp, traceskip, true)
 	})
