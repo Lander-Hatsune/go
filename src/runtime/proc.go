@@ -13,9 +13,15 @@ import (
 	"unsafe"
 )
 
-var RecordBegin func(taskid uint64) = nil
-var RecordEnd func(taskid uint64) = nil
-var Replay func(taskid uint64) = nil
+var RecordBegin func(goid, gopc, startpc, schedpc, schedret uint64) = nil
+var RecordEnd func(goid, gopc, startpc, schedpc, schedret uint64) = nil
+var Replay func(goid, gopc, startpc, schedpc, schedret uint64) = nil
+
+func info(gp *g) (goid, gopc, startpc, schedpc, schedret uint64) {
+	// goid & gopc & startpc bound
+	// schedret == 0
+	return uint64(gp.goid), uint64(gp.gopc), uint64(gp.startpc), uint64(gp.sched.pc), uint64(gp.sched.ret)
+}
 
 func gp2uint64(gp *g) uint64 {
 	return uint64(uintptr(unsafe.Pointer(gp)))
@@ -370,7 +376,7 @@ func gopark(unlockf func(*g, unsafe.Pointer) bool, lock unsafe.Pointer, reason w
 	// can't do anything that might move the G between Ms here.
 
 	if RecordEnd != nil && getg().m.curg == getg() {
-		RecordEnd(gp2uint64(gp))
+		RecordEnd(info(gp))
 	}
 
 	mcall(park_m)
@@ -385,11 +391,11 @@ func goparkunlock(lock *mutex, reason waitReason, traceEv byte, traceskip int) {
 func goready(gp *g, traceskip int) {
 
 	if Replay != nil && getg().m.curg == getg() {
-		Replay(gp2uint64(gp))
+		Replay(info(gp))
 	}
 
 	if RecordBegin != nil && getg().m.curg == getg() {
-		RecordBegin(gp2uint64(gp))
+		RecordBegin(info(gp))
 	}
 
 	systemstack(func() {
