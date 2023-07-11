@@ -14,12 +14,17 @@ import (
 )
 
 var RecordAndReplay bool = false
+var TraceTasks bool = false
 
 func mktaskid(gp *g) uint64 {
 	startpc := uint64(gp.startpc)
 	schedpc := uint64(gp.sched.pc)
 	var taskid uint64 = (startpc%(1<<32))<<32 + (schedpc % (1 << 32))
 	return taskid
+}
+
+func taskinfo(ev string, gp *g) {
+	println(ev, uint64(gp.goid), uint64(gp.gopc), uint64(gp.startpc), uint64(gp.sched.pc), mktaskid(gp))
 }
 
 // set using cmd/go/internal/modload.ModInfoProg
@@ -2574,6 +2579,9 @@ func execute(gp *g, inheritTime bool) {
 	if RecordAndReplay {
 		recordbegin(mktaskid(gp))
 	}
+	if TraceTasks {
+		taskinfo("begin", gp)
+	}
 
 	gogo(&gp.sched)
 }
@@ -3240,6 +3248,9 @@ top:
 	if RecordAndReplay {
 		replay(mktaskid(gp))
 	}
+	if TraceTasks {
+		taskinfo("replay", gp)
+	}
 
 	// This thread is going to run a goroutine and is not spinning anymore,
 	// so if it was marked as spinning we need to reset it now and potentially
@@ -3292,6 +3303,9 @@ func dropg() {
 
 	if RecordAndReplay {
 		recordend(mktaskid(_g_.m.curg))
+	}
+	if TraceTasks {
+		taskinfo("end", _g_.m.curg)
 	}
 
 	setMNoWB(&_g_.m.curg.m, nil)
