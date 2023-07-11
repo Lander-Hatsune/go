@@ -13,18 +13,13 @@ import (
 	"unsafe"
 )
 
-var RecordBegin func(goid, gopc, startpc, schedpc, schedret uint64) = nil
-var RecordEnd func(goid, gopc, startpc, schedpc, schedret uint64) = nil
-var Replay func(goid, gopc, startpc, schedpc, schedret uint64) = nil
+var RecordAndReplay bool = false
 
-func info(gp *g) (goid, gopc, startpc, schedpc, schedret uint64) {
-	// goid & gopc & startpc bound
-	// schedret == 0
-	return uint64(gp.goid), uint64(gp.gopc), uint64(gp.startpc), uint64(gp.sched.pc), uint64(gp.sched.ret)
-}
-
-func gp2uint64(gp *g) uint64 {
-	return uint64(uintptr(unsafe.Pointer(gp)))
+func mktaskid(gp *g) uint64 {
+	startpc := uint64(gp.startpc)
+	schedpc := uint64(gp.sched.pc)
+	var taskid uint64 = (startpc%(1<<32))<<32 + (schedpc % (1 << 32))
+	return taskid
 }
 
 // set using cmd/go/internal/modload.ModInfoProg
@@ -375,10 +370,6 @@ func gopark(unlockf func(*g, unsafe.Pointer) bool, lock unsafe.Pointer, reason w
 	releasem(mp)
 	// can't do anything that might move the G between Ms here.
 
-	if RecordEnd != nil && getg().m.curg == getg() {
-		RecordEnd(info(gp))
-	}
-
 	mcall(park_m)
 }
 
@@ -389,15 +380,6 @@ func goparkunlock(lock *mutex, reason waitReason, traceEv byte, traceskip int) {
 }
 
 func goready(gp *g, traceskip int) {
-
-	if Replay != nil && getg().m.curg == getg() {
-		Replay(info(gp))
-	}
-
-	if RecordBegin != nil && getg().m.curg == getg() {
-		RecordBegin(info(gp))
-	}
-
 	systemstack(func() {
 		ready(gp, traceskip, true)
 	})
@@ -2589,6 +2571,10 @@ func execute(gp *g, inheritTime bool) {
 		traceGoStart()
 	}
 
+	if RecordAndReplay {
+		recordbegin(mktaskid(gp))
+	}
+
 	gogo(&gp.sched)
 }
 
@@ -3251,6 +3237,10 @@ top:
 
 	gp, inheritTime, tryWakeP := findRunnable() // blocks until work is available
 
+	if RecordAndReplay {
+		replay(mktaskid(gp))
+	}
+
 	// This thread is going to run a goroutine and is not spinning anymore,
 	// so if it was marked as spinning we need to reset it now and potentially
 	// start a new spinning M.
@@ -3299,6 +3289,10 @@ top:
 // call schedule to restart the scheduling of goroutines on this m.
 func dropg() {
 	_g_ := getg()
+
+	if RecordAndReplay {
+		recordend(mktaskid(_g_.m.curg))
+	}
 
 	setMNoWB(&_g_.m.curg.m, nil)
 	setGNoWB(&_g_.m.curg, nil)

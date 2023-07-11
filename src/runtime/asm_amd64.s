@@ -391,6 +391,37 @@ TEXT runtime·mstart(SB),NOSPLIT|TOPFRAME,$0
 	RET // not reached
 
 /*
+ * record & replay
+ */
+
+// func recordbegin(taskid uint64)
+// record begin
+TEXT runtime·recordbegin(SB), NOSPLIT, $0-8
+	MOVQ	taskid+0(FP), DI
+	MOVQ 	$0, SI
+	BYTE $0x0F; BYTE $0x04
+	WORD	$0x5a // m5_work_begin
+	RET
+
+// func recordend(taskid uint64)
+// record end
+TEXT runtime·recordend(SB), NOSPLIT, $0-8
+	MOVQ	taskid+0(FP), DI
+	MOVQ 	$0, SI
+	BYTE $0x0F; BYTE $0x04
+	WORD	$0x5b // m5_work_end
+	RET
+
+// func replay(taskid uint64)
+// replay
+TEXT runtime·replay(SB), NOSPLIT, $0-8
+	MOVQ	taskid+0(FP), DI
+	MOVQ 	$0, SI
+	BYTE $0x0F; BYTE $0x04
+	WORD	$0x70 // m5_workload
+	RET
+
+/*
  *  go-routine
  */
 
