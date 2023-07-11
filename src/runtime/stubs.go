@@ -11,6 +11,10 @@ import (
 	"unsafe"
 )
 
+func recordbegin(taskid uint64)
+func recordend(taskid uint64)
+func replay(taskid uint64)
+
 // Should be a built-in for unsafe.Pointer?
 //
 //go:nosplit
