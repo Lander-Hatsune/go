@@ -418,7 +418,7 @@ TEXT runtime·replay(SB), NOSPLIT, $0-8
 	MOVQ	taskid+0(FP), DI
 	MOVQ 	$0, SI
 	BYTE $0x0F; BYTE $0x04
-	WORD	$0x70 // m5_workload
+	WORD	$0x30 // m5_init_param
 	RET
 
 /*
