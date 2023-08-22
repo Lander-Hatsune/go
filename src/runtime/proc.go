@@ -16,15 +16,30 @@ import (
 var RecordAndReplay bool = false
 var TraceTasks bool = false
 
+func SetInnerId(innerId uint64) {
+	gp := getg()
+	gp.innerId = innerId
+}
+
 func mktaskid(gp *g) uint64 {
-	startpc := uint64(gp.startpc)
 	schedpc := uint64(gp.sched.pc)
-	var taskid uint64 = (startpc%(1<<32))<<32 + (schedpc % (1 << 32))
+	var taskid uint64 = (gp.innerId%(1<<32))<<32 + (schedpc % (1 << 32))
 	return taskid
 }
 
 func taskinfo(ev string, gp *g) {
-	println(ev, uint64(gp.goid), uint64(gp.gopc), uint64(gp.startpc), uint64(gp.sched.pc), mktaskid(gp))
+	println(
+		ev,
+		gp.innerId,
+		uint64(gp.sched.pc),
+		mktaskid(gp),
+	)
+	// uint64(gp.startpc), uint64(gp.sched.pc),
+	// uint64(gp.sigpc), gp.sig,
+	// uint64(gp.goid), uint64(gp.gopc),
+	// uint64(gp.sched.lr), uint64(gp.sched.bp),
+	// mktaskid(gp),
+	// uint64(gp.stack.lo), uint64(gp.stack.hi),
 }
 
 // set using cmd/go/internal/modload.ModInfoProg
