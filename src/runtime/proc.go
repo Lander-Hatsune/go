@@ -30,6 +30,7 @@ func mktaskid(gp *g) uint64 {
 func taskinfo(ev string, gp *g) {
 	println(
 		ev,
+		gp.goid,
 		gp.innerId,
 		uint64(gp.sched.pc),
 		mktaskid(gp),
