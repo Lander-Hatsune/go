@@ -11,6 +11,8 @@ import (
 	"unsafe"
 )
 
+func prefetch(addr uintptr)
+
 // Should be a built-in for unsafe.Pointer?
 //
 //go:nosplit

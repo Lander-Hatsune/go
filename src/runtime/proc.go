@@ -3259,6 +3259,8 @@ top:
 		goto top
 	}
 
+	prefetch(gp.sched.pc)
+
 	execute(gp, inheritTime)
 }
 

@@ -391,6 +391,20 @@ TEXT runtime·mstart(SB),NOSPLIT|TOPFRAME,$0
 	RET // not reached
 
 /*
+ *  software-prefetch
+ */
+
+// func prefetch(addr uintptr)
+// prefetch 4 cachelines starting from addr
+TEXT runtime·prefetch(SB), NOSPLIT, $0-8
+	MOVQ	addr+0(FP), DI		// addr
+	PREFETCHT2	(DI)
+	PREFETCHT2	0x40(DI)
+	PREFETCHT2	0x80(DI)
+	PREFETCHT2	0xC0(DI)
+	RET
+
+/*
  *  go-routine
  */
 
